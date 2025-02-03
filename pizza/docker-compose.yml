@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: frontend
+    networks:
+      - pizza-net
+
+  db:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: pizza_password
+      MYSQL_DATABASE: pizza_orders
+    networks:
+      - pizza-net
+
+  nginx:
+    build:
+      context: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+    networks:
+      - pizza-net
+
+  apache_php:
+    build:
+      context: apache_php
+    container_name: apache_php
+    volumes:
+      - ./apache_php/website:/var/www/html
+    networks:
+      - pizza-net
+    depends_on:
+      - db
+
+networks:
+  pizza-net:
+    driver: bridge

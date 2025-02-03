@@ -1,0 +1,61 @@
+---
+- name: Setup pizza ordering
+  hosts: local
+  become: no
+  vars:
+    project_dir: "{{ ansible_env.HOME }}/pizza-ordering"
+  tasks:
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_version
+      ignore_errors: yes
+
+    - name: Fail if Docker is not installed
+      fail:
+        msg: "Docker is not installed on this system."
+      when: docker_version.rc != 0
+
+    - name: Debug Docker version
+      debug:
+        msg: "Docker is installed, version: {{ docker_version.stdout }}"
+      when: docker_version.rc == 0
+
+    - name: Check if Docker Compose is installed
+      command: docker-compose --version
+      register: docker_compose_version
+      ignore_errors: yes
+
+    - name: Fail if Docker Compose is not installed
+      fail:
+        msg: "Docker Compose is not installed on this system."
+      when: docker_compose_version.rc != 0
+
+    - name: Debug Docker Compose version
+      debug:
+        msg: "Docker Compose is installed, version: {{ docker_compose_version.stdout }}"
+      when: docker_compose_version.rc == 0
+
+    - name: Create dir
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Sync files
+      synchronize:
+        src: ../../pizza/
+        dest: "{{ project_dir }}"
+        mode: push
+        recursive: yes
+
+    - name: Run docker-compose
+      command: docker-compose up -d
+      args:
+        chdir: "{{ project_dir }}"
+      notify:
+        - Docker containers started
+
+  handlers:
+    - name: Docker containers started
+      debug:
+        msg: "Docker containers started."
